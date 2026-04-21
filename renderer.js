@@ -26,4 +26,16 @@ window. addEventListener ('DOMContentLoaded', async () => {
         await window. electronAPI.saveNote(textarea.value);
         alert ('Note saved successfully!' ) ;
     });   
+
+    const saveAsBtn = document.getElementById('save-as');
+
+    saveAsBtn.addEventListener('click', async () => {
+        const result = await window.electronAPI.saveAs(textarea.value);
+        if (result.success) {
+            lastSavedText = textarea.value;
+            statusEl.textContent = `Saved to: ${result.filePath}`;
+        } else {
+            statusEl.textContent = 'Save As cancelled.';
+        }
+    });
 });

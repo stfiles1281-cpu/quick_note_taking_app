@@ -1,22 +1,29 @@
-const { app, BrowserWindow, ipcMain } = require('electron' );
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 
-const path = require ('node:path' );
-const fs = require('node:fs' );
+const path = require('node:path');
+const fs = require('node:fs');
 
 function createWindow() {
     const win = new BrowserWindow({
         width: 900,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js' ),
+            preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false
         }
     });
 
-win.loadFile('index.html');
+    // const result = await dialog.showSaveDialog({
+    //         defaultPath: 'mynote.txt',
+    //         filters: [{ name: 'Text Files', extensions: ['txt']}]
+    // });
+    // console.log(result.canceled);
+    // console.log(result.filePath);
+
+    win.loadFile('index.html');
 }
-app.whenReady().then ( () => {
+app.whenReady().then(() => {
     createWindow();
 
     app.on('activate', () => {
@@ -26,29 +33,42 @@ app.whenReady().then ( () => {
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin' ) {
+    if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
 // IPC Handlers
-ipcMain. handle('save-note', async (event, text) => {
-    const filePath = path. join(app.getPath('documents'), 'quicknote.txt');
+ipcMain.handle('save-note', async (event, text) => {
+    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
     fs.writeFileSync(filePath, text, 'utf-8');
     return { success: true };
 });
 
-ipcMain. handle('load-note', async () => {
-    const filePath = path. join(app.getPath('documents'), 'quicknote.txt');
+ipcMain.handle('load-note', async () => {
+    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
     if (fs.existsSync(filePath)) {
         return fs.readFileSync(filePath, 'utf-8');
     }
     return '';
+});
+
+ipcMain.handle('save-as', async (event, text) => {
+    const result = await dialog.showSaveDialog({
+        defaultPath: 'mynpte.txt',
+        filters: [{ name: 'Text Files', extensions: ['txt'] }]
+    });
+
+    if (result.canceled) {
+        return { success: false };
+    }
+    fs.writeFileSync(result.filePath, text, 'utf-8');
+    return { success: true, filePath: result.filePath };
 
 });
 
-ipcMain. handle('delete-note', async () => {
-    const filePath = path. join(app.getPath('documents'), 'quicknote.txt');
+ipcMain.handle('delete-note', async () => {
+    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
     }
