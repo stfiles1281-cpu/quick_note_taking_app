@@ -55,7 +55,7 @@ ipcMain.handle('load-note', async () => {
 
 ipcMain.handle('save-as', async (event, text) => {
     const result = await dialog.showSaveDialog({
-        defaultPath: 'mynpte.txt',
+        defaultPath: 'mynote.txt',
         filters: [{ name: 'Text Files', extensions: ['txt'] }]
     });
 
@@ -73,4 +73,40 @@ ipcMain.handle('delete-note', async () => {
         fs.unlinkSync(filePath);
     }
     return { success: true };
+});
+
+
+ipcMain.handle('new-note', async (event) => {
+    const result = await dialog.showMessageBox({
+        type: 'warning',
+        buttons: ['Discard Changes', 'Cancel'],
+        defaultId: 1,
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes. Start a new note anyway?'
+    });
+
+    // result.response === 0 means user clicked 'Discard Changes'
+    return { confirmed: result.response === 0 };
+});
+
+
+ipcMain.handle('open-file', async (event) => {
+    const result = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: 'Text Files', extensions: ['txt'] }]
+    });
+
+    if (result.canceled) {
+        return { success: false };
+    }
+
+    const filePath = result.filePaths[0];
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return { success: true, content, filePath };
+});
+
+ipcMain.handle('smart-save', async (event, text, filePath) => {
+    const targetPath = filePath || path.join(app.getPath('documents'), 'quicknote.txt');
+    fs.writeFileSync(targetPath, text, 'utf-8');
+    return { success: true, filePath: targetPath };
 });
